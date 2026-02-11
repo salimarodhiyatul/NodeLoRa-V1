@@ -1,4 +1,4 @@
-//ESP GATEWAY
+//SENSOR SOIL HUMADITY
 #include <esp_now.h>
 #include <WiFi.h>
 
@@ -8,23 +8,29 @@ typedef struct {
   float value;
 } SensorData;
 
-SensorData rx;
+SensorData dataSend;
+uint8_t gatewayMac[] = {0x24,0x6F,0x28,0xAA,0xBB,0xCC}; //Ganti sesuai dengan Mac Addres ESP tujuan
 
-void onRecv(const esp_now_recv_info *info,
-            const uint8_t *data, int len) {
-  memcpy(&rx, data, sizeof(rx));
-
-  Serial.printf("%s|%s:%.2f\n",
-                rx.node_id,
-                rx.type,
-                rx.value);
-}
+#define SOIL_PIN 34
 
 void setup() {
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
   esp_now_init();
-  esp_now_register_recv_cb(onRecv);
+
+  esp_now_peer_info_t peer = {};
+  memcpy(peer.peer_addr, gatewayMac, 6);
+  peer.encrypt = false;
+  esp_now_add_peer(&peer);
+
+  strcpy(dataSend.node_id, "NODE1");
+  strcpy(dataSend.type, "SOIL");
 }
 
-void loop() {}
+void loop() {
+  int raw = analogRead(SOIL_PIN);
+  dataSend.value = map(raw, 0, 4095, 0, 100);
+
+  esp_now_send(gatewayMac, (uint8_t *)&dataSend, sizeof(dataSend));
+  delay(5000);
+}
