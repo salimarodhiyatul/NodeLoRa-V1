@@ -1,0 +1,31 @@
+#Raspi A,B
+import serial
+import time
+from lora_driver import LoRa
+
+NODE_ID = "RPI_A" #sesuaikan dengan node
+
+# ESP Gateway via USB
+esp = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.1)
+
+# LoRa
+lora = LoRa()
+
+print("Node aktif")
+
+while True:
+    if esp.in_waiting:
+        line = esp.readline().decode().strip()
+        if line:
+            print("ESP RX:", line)
+
+            # kirim ke LoRa
+            packet = (line + "\n").encode()
+            lora.send(packet)
+
+    pkt = lora.receive()
+    if pkt:
+        msg = pkt.decode(errors="ignore").strip()
+        print("LoRa RX:", msg)
+
+    time.sleep(0.05)
